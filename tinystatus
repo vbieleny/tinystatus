@@ -39,8 +39,10 @@ check(){
     # verity status and write files
     if [ ${statuscode} -eq ${expectedcode} ]; then
         echo "Status code: ${statuscode}" > "${tmp}/ok/${name}.status"
+        [ ${ctype} = 'http' ] && echo "${host}" > "${tmp}/ok/${name}.host"
     else
         echo "Status code: ${statuscode}" > "${tmp}/ko/${name}.status"
+        [ ${ctype} = 'http' ] && echo "${host}" > "${tmp}/ko/${name}.host"
     fi
     if [ -s "${tmp}/ko/${name}.error" ]; then
         sed "${tmp}/ko/${name}.error" \
@@ -74,8 +76,10 @@ li { list-style: none; margin-bottom: 2px; padding: 5px; border-bottom: 1px soli
 .success-bg { color: white; background-color: #52B86A; }
 .failed  { color: #E25D6A; }
 .success { color: #52B86A; }
+.info { color: DodgerBlue; }
 .small { font-size: 80%; }
 .status { float: right; }
+.link { text-decoration: none; }
 </style></head>
 <body>
 <div class='container'>
@@ -95,12 +99,26 @@ for file in ${tmp}/ko/*.status; do
     [ -e "${file}" ] || continue
     name="$(basename "${file}" | sed 's,.status$,,')"
     status="$(cat "${file}")"
-    echo "<li>${name} <span class='small failed'>(${status})</span><span class='status failed'>Disrupted</span></li>"
+    hostfile="${file%.*}.host"
+    if [ -e "${hostfile}" ]; then
+        host="$(cat "${hostfile}")"
+        formatted_name="<a class='link failed' href='${host}'>${name}</a>"
+    else
+        formatted_name="${name}"
+    fi
+    echo "<li>${formatted_name} <span class='small failed'>(${status})</span><span class='status failed'>Disrupted</span></li>"
 done
 for file in ${tmp}/ok/*.status; do
     [ -e "${file}" ] || continue
     name="$(basename "${file}" | sed 's,.status$,,')"
-    echo "<li>${name} <span class='status success'>Operational</span></li>"
+    hostfile="${file%.*}.host"
+    if [ -e "${hostfile}" ]; then
+        host="$(cat "${hostfile}")"
+        formatted_name="<a class='link info' href='${host}'>${name}</a>"
+    else
+        formatted_name="${name}"
+    fi
+    echo "<li>${formatted_name} <span class='status success'>Operational</span></li>"
 done
 cat << EOF
 </ul>
